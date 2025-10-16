@@ -1,8 +1,11 @@
 version: '3.8'
 
 services:
+  # Frontend - Next.js Container
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     ports:
       - '3000:3000'
     volumes:
@@ -11,6 +14,27 @@ services:
       - /app/.next
     environment:
       - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+    depends_on:
+      - backend
     restart: unless-stopped
     mem_limit: 2g
+
+  # Backend - FastAPI Container
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - '8000:8000'
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
+    environment:
+      - ENVIRONMENT=development
+    restart: unless-stopped
+    mem_limit: 1g
+
+volumes:
+  node_modules:
+  next_build:
