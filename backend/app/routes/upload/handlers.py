@@ -3,6 +3,7 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 import json
 import uuid
+import httpx
 from . import messages
 from . import file_operations
 
@@ -15,7 +16,7 @@ async def websocket_upload(websocket: WebSocket):
     Handle WebSocket connection for file uploads with progress tracking.
     """
     await websocket.accept()
-    print("WebSocket connection established")
+    print("WebSocket connection established", flush=True)
 
     # Send connection status to client
     await websocket.send_json(messages.connection_message())
@@ -24,7 +25,7 @@ async def websocket_upload(websocket: WebSocket):
         # Wait for metadata message
         metadata_json = await websocket.receive_text()
         metadata = json.loads(metadata_json)
-        print(f"Received file metadata: {metadata}")
+        print(f"Received file metadata: {metadata}", flush=True)
 
         # Send metadata received confirmation
         filename = metadata.get("filename", "unknown file")
@@ -46,7 +47,7 @@ async def websocket_upload(websocket: WebSocket):
         await websocket.send_json(messages.ready_to_receive_message(filename))
 
         # Receive binary data
-        print(f"Waiting for file data for {filename}")
+        print(f"Waiting for file data for {filename}", flush=True)
         file_data = await websocket.receive_bytes()
 
         # Notify client that file data is being processed
@@ -67,24 +68,44 @@ async def websocket_upload(websocket: WebSocket):
         # Notify client that file has been saved
         await websocket.send_json(messages.file_saved_message(file_path))
 
-        # Send success message
-        await websocket.send_json(
-            messages.success_message(
-                upload_id, file_url, filename, received_size, content_type
-            )
-        )
+        print(f"File saved successfully: {file_path}", flush=True)
 
-        print(f"File saved successfully: {file_path}")
+        # Send to vision model for processing
+        await websocket.send_json(messages.vision_processing_message())
+
+        async with httpx.AsyncClient() as client:
+            with open(file_path, "rb") as f:
+                files = {"file": (filename, f, content_type)}
+                response = await client.post(
+                    "http://vision-service:8001/api/predict", files=files, timeout=30.0
+                )
+                vision_result = response.json()
+
+        print(f"Vision model response: {vision_result}", flush=True)
+
+        # Save the segmentation mask
+        if vision_result.get("success") and vision_result.get("mask_base64"):
+            import base64
+
+            mask_data = base64.b64decode(vision_result["mask_base64"])
+            mask_path = file_operations.save_mask(upload_id, mask_data)
+            print(f"Saved mask to: {mask_path}", flush=True)
+
+        # Send success message with vision result
+        success_msg = messages.success_message(
+            upload_id, file_url, filename, received_size, content_type
+        )
+        success_msg["data"]["visionResult"] = vision_result
+        await websocket.send_json(success_msg)
 
     except WebSocketDisconnect:
-        print("WebSocket disconnected")
-        # No need to send message as connection is already closed
+        print("WebSocket disconnected", flush=True)
     except json.JSONDecodeError as e:
-        print(f"JSON decode error: {e}")
+        print(f"JSON decode error: {e}", flush=True)
         await websocket.send_json(messages.json_error_message(str(e)))
     except Exception as e:
-        print(f"Error during WebSocket upload: {e}")
+        print(f"Error during WebSocket upload: {e}", flush=True)
         try:
             await websocket.send_json(messages.generic_error_message(str(e)))
         except:
-            print("Failed to send error message, connection may be closed")
+            print("Failed to send error message, connection may be closed", flush=True)

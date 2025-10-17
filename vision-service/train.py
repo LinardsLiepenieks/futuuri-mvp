@@ -156,7 +156,7 @@ def main():
     # Step 5: Save model
     print(f"💾 Saving model to {MODEL_PATH}...")
     os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
-    model.save(MODEL_PATH, include_optimizer=True)
+    model.save(MODEL_PATH)  # Removed include_optimizer parameter
     print("✅ Model saved successfully!")
 
     # Step 6: Evaluate

@@ -7,7 +7,7 @@ import StatusTimeline from './components/StatusTimelines';
 
 export default function UploadPage() {
   // Custom hooks - extract all relevant state from the hook
-  const { uploadImage, status, progress, serverMessage, error } =
+  const { uploadImage, status, progress, serverMessage, error, data } =
     useImageUpload();
 
   return (
@@ -22,7 +22,12 @@ export default function UploadPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left column: Upload form */}
           <div className="order-2 lg:order-1">
-            <UploadForm uploadImage={uploadImage} />
+            <UploadForm 
+              uploadImage={uploadImage}
+              status={status}
+              data={data}
+              error={error}
+            />
           </div>
 
           {/* Right column: Status Timeline */}

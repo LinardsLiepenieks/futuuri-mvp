@@ -6,14 +6,15 @@ import { UploadStatus } from '@/types/imageUpload';
 
 type UploadFormProps = {
   uploadImage: (file: File) => Promise<any>;
+  status: UploadStatus;
+  data: any | null;
+  error: Error | null;
 };
 
-const UploadForm: React.FC<UploadFormProps> = ({ uploadImage }) => {
-  const [status, setStatus] = useState<UploadStatus>('idle');
-  const [data, setData] = useState<any | null>(null);
+const UploadForm: React.FC<UploadFormProps> = ({ uploadImage, status, data, error }) => {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
 
   // Handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -21,18 +22,18 @@ const UploadForm: React.FC<UploadFormProps> = ({ uploadImage }) => {
     if (!selectedFile) return;
 
     // Reset any previous errors
-    setError(null);
+    setLocalError(null);
 
     // Validate file type
     const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
     if (!validTypes.includes(selectedFile.type)) {
-      setError('Please select a valid image file (JPG, PNG, GIF)');
+      setLocalError('Please select a valid image file (JPG, PNG, GIF)');
       return;
     }
 
     // Validate file size (10MB max)
     if (selectedFile.size > 10 * 1024 * 1024) {
-      setError('File size exceeds 10MB limit');
+      setLocalError('File size exceeds 10MB limit');
       return;
     }
 
@@ -48,32 +49,19 @@ const UploadForm: React.FC<UploadFormProps> = ({ uploadImage }) => {
     e.preventDefault();
 
     if (!file) {
-      setError('Please select a file to upload');
+      setLocalError('Please select a file to upload');
       return;
     }
 
     try {
-      setStatus('uploading');
-      const result = await uploadImage(file);
-
-      // Only set success status if the server explicitly indicates success
-      console.log('RESULT', result.status);
-      if (result && result.status === 'processed') {
-        setData(result);
-        setStatus('success');
-      } else {
-        // If we get a response but it's not a success, keep the status as uploading
-        console.log(
-          'Upload in progress, waiting for processing to complete:',
-          result
-        );
-      }
+      setLocalError(null);
+      await uploadImage(file);
+      // Don't manage state here - let the hook handle it through WebSocket messages
     } catch (err) {
       console.error('Upload failed:', err);
-      setError(
+      setLocalError(
         err instanceof Error ? err.message : 'Upload failed. Please try again.'
       );
-      setStatus('error');
     }
   };
 
@@ -81,9 +69,7 @@ const UploadForm: React.FC<UploadFormProps> = ({ uploadImage }) => {
   const handleReset = () => {
     setFile(null);
     setPreview(null);
-    setStatus('idle');
-    setData(null);
-    setError(null);
+    setLocalError(null);
   };
 
   return (
@@ -109,7 +95,7 @@ const UploadForm: React.FC<UploadFormProps> = ({ uploadImage }) => {
               className={`border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 ${
                 preview
                   ? 'bg-blue-50 border-blue-300'
-                  : error
+                  : (localError || error)
                   ? 'bg-red-50 border-red-300'
                   : 'bg-slate-50 border-slate-200 hover:border-blue-400 hover:bg-blue-50'
               }`}
@@ -198,7 +184,7 @@ const UploadForm: React.FC<UploadFormProps> = ({ uploadImage }) => {
               </label>
             </div>
 
-            {error && (
+            {(localError || error) && (
               <div className="mt-2 text-red-600 text-sm flex items-center">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -212,7 +198,7 @@ const UploadForm: React.FC<UploadFormProps> = ({ uploadImage }) => {
                     clipRule="evenodd"
                   />
                 </svg>
-                {error}
+                {localError || error?.message}
               </div>
             )}
           </div>
@@ -221,13 +207,13 @@ const UploadForm: React.FC<UploadFormProps> = ({ uploadImage }) => {
             type="submit"
             className={`w-full bg-blue-600 text-white px-4 py-3 rounded-lg font-medium text-sm transition-all duration-300
               ${
-                !file || status === 'uploading'
+                !file || status === 'uploading' || status === 'connecting'
                   ? 'opacity-50 cursor-not-allowed'
                   : 'hover:bg-blue-700 hover:shadow-md'
               }`}
-            disabled={!file || status === 'uploading'}
+            disabled={!file || status === 'uploading' || status === 'connecting'}
           >
-            {status === 'uploading' ? (
+            {(status === 'uploading' || status === 'connecting') ? (
               <div className="flex items-center justify-center">
                 <svg
                   className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"

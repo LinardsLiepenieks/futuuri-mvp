@@ -45,6 +45,11 @@ def progress_message(
     }
 
 
+def vision_processing_message() -> Dict[str, str]:
+    """Message indicating file is being sent to vision model"""
+    return {"type": "status", "message": "Sending to vision model for processing..."}
+
+
 def file_saved_message(file_path: str) -> Dict[str, str]:
     """Confirmation that file was saved"""
     return {"type": "status", "message": f"File saved successfully at {file_path}"}

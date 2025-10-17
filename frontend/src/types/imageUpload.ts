@@ -1,2 +1,2 @@
 // Upload status types
-export type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
+export type UploadStatus = 'idle' | 'connecting' | 'uploading' | 'processing' | 'success' | 'error';

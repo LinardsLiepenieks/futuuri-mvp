@@ -32,6 +32,23 @@ def save_file(file_path: str, file_data: bytes) -> None:
         f.write(file_data)
 
 
+def save_mask(upload_id: str, mask_data: bytes) -> str:
+    """
+    Save segmentation mask to file
+
+    Args:
+        upload_id: Upload identifier
+        mask_data: Binary PNG mask data
+
+    Returns:
+        Path where mask was saved
+    """
+    mask_path = os.path.join(UPLOAD_DIR, f"{upload_id}_mask.png")
+    with open(mask_path, "wb") as f:
+        f.write(mask_data)
+    return mask_path
+
+
 def calculate_progress(received_size: int, file_size: int) -> int:
     """
     Calculate upload progress percentage
