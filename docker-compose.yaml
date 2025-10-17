@@ -31,8 +31,10 @@ services:
     environment:
       - ENVIRONMENT=development
       - VISION_SERVICE_URL=http://vision-service:8001
+      - STORAGE_SERVICE_URL=http://storage-service:8002
     depends_on:
       - vision-service
+      - storage-service
     restart: unless-stopped
     mem_limit: 1g
 
@@ -51,6 +53,21 @@ services:
       - ENVIRONMENT=development
     restart: unless-stopped
     mem_limit: 4g
+
+  # Storage Service - Database and File Storage
+  storage-service:
+    build:
+      context: ./storage-service
+      dockerfile: Dockerfile
+    ports:
+      - '8002:8002'
+    volumes:
+      - ./storage-service/app:/app/app
+      - ./storage-service/data:/app/data
+    environment:
+      - ENVIRONMENT=development
+    restart: unless-stopped
+    mem_limit: 512m
 
 volumes:
   node_modules:
