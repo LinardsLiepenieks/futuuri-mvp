@@ -33,6 +33,13 @@ env/
 .env
 *.env.local
 
+# Allow committed example env files
+!.env.example
+!frontend/.env.example
+
+# Frontend local env (do not commit)
+frontend/.env
+
 # Pytest cache
 .pytest_cache/
 
