@@ -26,14 +26,16 @@ A microservices-based medical image analysis platform using computer vision for 
 1. **Prerequisites**: Docker & Docker Compose
 
 2. **Start all services**:
+
    ```bash
    docker-compose up --build
    ```
 
 3. **Access the application**:
+
    - Web UI: http://localhost:3000
    - API: http://localhost:8000
-   - Vision API: http://localhost:8001  
+   - Vision API: http://localhost:8001
    - Storage API: http://localhost:8002
 
 4. **Development mode** (with live reload):

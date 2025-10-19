@@ -1,13 +1,12 @@
-"""Storage Service - Database and File Management"""
+"""Storage Service - File Storage for Images"""
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .database import init_db
-from .routes import reports, files
+from .routes import files, reports
 
 app = FastAPI(
     title="Storage Service",
-    description="Database and file storage for medical reports",
+    description="File storage for report images and masks",
     version="1.0.0",
 )
 
@@ -21,17 +20,15 @@ app.add_middleware(
 )
 
 
-# Initialize database on startup
 @app.on_event("startup")
 async def startup_event():
-    """Initialize database when service starts"""
-    init_db()
+    """Initialize service"""
     print("✅ Storage service started")
 
 
 # Include routers
-app.include_router(reports.router, prefix="/api", tags=["reports"])
 app.include_router(files.router, prefix="/api", tags=["files"])
+app.include_router(reports.router, prefix="/api", tags=["reports"])
 
 
 @app.get("/")
@@ -40,7 +37,7 @@ async def root():
     return {
         "service": "Storage Service",
         "status": "running",
-        "endpoints": {"reports": "/api/reports", "files": "/api/files"},
+        "endpoints": {"files": "/api/files"},
     }
 
 
