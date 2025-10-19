@@ -67,12 +67,21 @@ async def upload_mask_file(report_id: str, file: UploadFile = File(...)):
 @router.get("/files/{report_id}/report/{filename}")
 async def get_report_file(report_id: str, filename: str):
     """Retrieve report file for a report (final storage)"""
-    file_path = os.path.join(REPORTS_DIR, f"{report_id}_{filename}")
+    # filename may already include the report_id prefix (stored as basename in DB).
+    # Normalize to a basename to avoid path traversal, then try a couple of
+    # candidate paths for compatibility:
+    safe_name = os.path.basename(filename)
 
-    if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="Report file not found")
+    candidates = [
+        os.path.join(REPORTS_DIR, safe_name),
+        os.path.join(REPORTS_DIR, f"{report_id}_{safe_name}"),
+    ]
 
-    return FileResponse(file_path)
+    for path in candidates:
+        if os.path.exists(path):
+            return FileResponse(path)
+
+    raise HTTPException(status_code=404, detail="Report file not found")
 
 
 @router.get("/files/{report_id}/mask")

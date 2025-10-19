@@ -78,7 +78,12 @@ export function useImageUpload() {
       setStatus('connecting');
       console.log('Attempting to connect to WebSocket server...');
 
-      const ws = new WebSocket('ws://localhost:8000/api/upload/ws');
+      // Build WebSocket URL from configured API host. If API uses https, use wss.
+      const api = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
+      const wsUrl = api
+        ? api.replace(/^http/, 'ws') + '/api/upload/ws'
+        : 'ws://localhost:8000/api/upload/ws';
+      const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
         console.log('WebSocket connection established');

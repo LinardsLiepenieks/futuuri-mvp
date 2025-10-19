@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 type Report = {
   report_id: string;
@@ -16,43 +17,27 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const envBase = process.env.NEXT_PUBLIC_API_URL;
-    const fallback =
-      process.env.NEXT_PUBLIC_API_FALLBACK || 'http://localhost:8000';
-    const candidates = [envBase, fallback];
-
-    let finished = false;
+    const envBase = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
 
     const tryFetch = async () => {
-      for (const base of candidates) {
-        if (!base) continue;
-        try {
-          const res = await fetch(`${base.replace(/\/$/, '')}/api/reports`, {
-            cache: 'no-store',
-          });
-          if (!res.ok) continue;
-          const data = await res.json();
-          setReports(data.items || []);
-          finished = true;
-          break;
-        } catch (err) {
-          // try next candidate
-        }
+      if (!envBase) {
+        setReports([]);
+        setLoading(false);
+        return;
       }
 
-      if (!finished) {
-        // Last attempt: try relative path (same-origin)
-        try {
-          const res = await fetch(`/api/reports`, { cache: 'no-store' });
-          if (res.ok) {
-            const data = await res.json();
-            setReports(data.items || []);
-          } else {
-            setReports([]);
-          }
-        } catch (err) {
+      try {
+        const res = await fetch(`${envBase}/api/reports`, {
+          cache: 'no-store',
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setReports(data.items || []);
+        } else {
           setReports([]);
         }
+      } catch (err) {
+        setReports([]);
       }
 
       setLoading(false);
@@ -171,9 +156,12 @@ export default function Home() {
                   </div>
                 </div>
 
-                <button className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm transition-all hover:bg-blue-700 hover:shadow-md">
+                <Link
+                  href={`/report/${r.report_id}`}
+                  className="w-full inline-block text-center bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm transition-all hover:bg-blue-700 hover:shadow-md"
+                >
                   View Report
-                </button>
+                </Link>
               </div>
             ))}
           </div>
