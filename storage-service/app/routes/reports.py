@@ -103,3 +103,43 @@ async def create_report():
     staging_path = os.path.join(STAGING_DIR, report_id)
     os.makedirs(staging_path, exist_ok=True)
     return {"success": True, "report_id": report_id}
+
+
+@router.get("/reports")
+async def list_reports():
+    """Return all reports from the database (simple demo listing)."""
+    # Ensure DB exists
+    conn = db_connect()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            report_id TEXT NOT NULL UNIQUE,
+            report_image_path TEXT,
+            mask_image_path TEXT,
+            created_at DATETIME DEFAULT (CURRENT_TIMESTAMP),
+            updated_at DATETIME DEFAULT (CURRENT_TIMESTAMP)
+        )
+        """
+    )
+    conn.commit()
+    cur.execute(
+        "SELECT report_id, report_image_path, mask_image_path, created_at, updated_at FROM reports ORDER BY created_at DESC"
+    )
+    rows = cur.fetchall()
+    conn.close()
+
+    items = []
+    for r in rows:
+        items.append(
+            {
+                "report_id": r[0],
+                "report_image_path": r[1],
+                "mask_image_path": r[2],
+                "created_at": r[3],
+                "updated_at": r[4],
+            }
+        )
+
+    return {"success": True, "items": items}

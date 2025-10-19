@@ -11,6 +11,7 @@ import uuid
 from . import messages
 from . import file_operations
 from . import upload_steps
+import httpx
 
 router = APIRouter()
 

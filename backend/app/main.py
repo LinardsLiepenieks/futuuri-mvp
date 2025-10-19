@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import CORS_ORIGINS
 from app.routes import health
 from app.routes import upload
+from app.routes import reports
 
 app = FastAPI(
     title="Medical Report API",
@@ -22,3 +23,4 @@ app.add_middleware(
 # Include routers
 app.include_router(health.router, tags=["health"])
 app.include_router(upload.router, tags=["upload"])
+app.include_router(reports.router, prefix="/api", tags=["reports"])
