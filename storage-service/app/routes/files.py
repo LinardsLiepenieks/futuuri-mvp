@@ -1,7 +1,9 @@
 """File upload and retrieval endpoints with staging and atomic commit"""
 
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Response
 from fastapi.responses import FileResponse
+import mimetypes
+import hashlib
 import os
 import shutil
 from pathlib import Path
@@ -84,6 +86,33 @@ async def get_report_file(report_id: str, filename: str):
     raise HTTPException(status_code=404, detail="Report file not found")
 
 
+@router.head("/files/{report_id}/report/{filename}")
+async def head_report_file(report_id: str, filename: str):
+    """Return headers for report file without body (HEAD)."""
+    safe_name = os.path.basename(filename)
+    candidates = [
+        os.path.join(REPORTS_DIR, safe_name),
+        os.path.join(REPORTS_DIR, f"{report_id}_{safe_name}"),
+    ]
+
+    for path in candidates:
+        if os.path.exists(path):
+            size = os.path.getsize(path)
+            ctype, _ = mimetypes.guess_type(path)
+            ctype = ctype or "application/octet-stream"
+            etag = f"{int(os.path.getmtime(path))}-{size}"
+            headers = {
+                "content-type": ctype,
+                "content-length": str(size),
+                "accept-ranges": "bytes",
+                "etag": etag,
+                "cache-control": "public, max-age=3600",
+            }
+            return Response(status_code=200, headers=headers)
+
+    raise HTTPException(status_code=404, detail="Report file not found")
+
+
 @router.get("/files/{report_id}/mask")
 async def get_mask_file(report_id: str):
     """Retrieve mask file for a report (final storage)"""
@@ -93,3 +122,24 @@ async def get_mask_file(report_id: str):
         raise HTTPException(status_code=404, detail="Mask file not found")
 
     return FileResponse(file_path)
+
+
+@router.head("/files/{report_id}/mask")
+async def head_mask_file(report_id: str):
+    """Return headers for mask file without body (HEAD)."""
+    file_path = os.path.join(MASKS_DIR, f"{report_id}_mask.png")
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Mask file not found")
+
+    size = os.path.getsize(file_path)
+    ctype, _ = mimetypes.guess_type(file_path)
+    ctype = ctype or "application/octet-stream"
+    etag = f"{int(os.path.getmtime(file_path))}-{size}"
+    headers = {
+        "content-type": ctype,
+        "content-length": str(size),
+        "accept-ranges": "bytes",
+        "etag": etag,
+        "cache-control": "public, max-age=3600",
+    }
+    return Response(status_code=200, headers=headers)
